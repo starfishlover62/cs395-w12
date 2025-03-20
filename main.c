@@ -4,6 +4,11 @@
 #include <sys/time.h>
 
 
+#define FLAG_SELECTION 1
+#define FLAG_QUICK 2
+#define FLAG_INSERTION 4
+
+
 struct int_array {
     int* array;
     unsigned size;
@@ -31,8 +36,9 @@ int generateArrays(unsigned, struct data*);
 int runTrial(unsigned, struct trial*);
 void initializeData(struct data*);
 int parseCL(int, char**, struct int_array*);
+int checkArray(struct int_array);
 
-void executeSort(void (*f)(struct int_array), struct int_array arr, double* time);
+int executeSort(void (*f)(struct int_array), struct int_array arr, double* time);
 
 void saveTime(struct timeval, struct timeval, double*);
 
@@ -74,7 +80,20 @@ int main() {
     unsigned growth = 10;
     for(unsigned i = 0; i < num_runs; ++i){
         size*=growth;
-        runTrial(size,&(trials[i]));
+        int flag;
+        if((flag = runTrial(size,&(trials[i])))){
+            printf("ERROR! ");
+            if(flag & FLAG_INSERTION){
+                printf("INSERTION. ");
+            }
+            if(flag & FLAG_SELECTION){
+                printf("SELECTION. ");
+            }
+            if(flag & FLAG_QUICK){
+                printf("QUICK. ");
+            }
+            
+        }
     }
     printTable(trials,num_runs);
 
@@ -120,18 +139,26 @@ int runTrial(unsigned elements, struct trial* trial_data){
     initializeData(&array);
     generateArrays(elements,&array);
     trial_data->num_elements = elements;
-    executeSort(selectionSort,array.selection_sort_data,&(trial_data->selection_sort_time));
-    executeSort(InsertionSort,array.insertion_sort_data,&(trial_data->insertion_sort_time));
-    executeSort(QuickSortCaller,array.quick_sort_data,&(trial_data->quick_sort_time));
-    return 0;
+    int flag = 0;
+    if(executeSort(selectionSort,array.selection_sort_data,&(trial_data->selection_sort_time))){
+        flag = flag | FLAG_SELECTION;
+    }
+    if(executeSort(InsertionSort,array.insertion_sort_data,&(trial_data->insertion_sort_time))){
+        flag = flag | FLAG_INSERTION;
+    }
+    if(executeSort(QuickSortCaller,array.quick_sort_data,&(trial_data->quick_sort_time))){
+        flag = flag | FLAG_QUICK;
+    }
+    return flag;
 }
 
-void executeSort(void (*f)(struct int_array), struct int_array arr, double* time){
+int executeSort(void (*f)(struct int_array), struct int_array arr, double* time){
     struct timeval start,stop;
     gettimeofday(&start, NULL);
     (*f)(arr);
     gettimeofday(&stop, NULL);
     saveTime(start,stop,time);
+    return checkArray(arr);
 }
 
 void saveTime(struct timeval start, struct timeval stop, double* store){
@@ -143,6 +170,15 @@ void initializeData(struct data* d){
     d->selection_sort_data.array = NULL;
     d->insertion_sort_data.array = NULL;
     d->quick_sort_data.array = NULL;
+}
+
+int checkArray(struct int_array arr){
+    for(unsigned i = 0; i < arr.size-1; ++i){
+        if(arr.array[i] > arr.array[i+1]){
+            return 1;
+        }
+    }
+    return 0;
 }
 
 // Prints out the table head, each row, and the foot
