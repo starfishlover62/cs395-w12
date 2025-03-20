@@ -157,6 +157,8 @@ int runTrial(unsigned elements, struct trial* trial_data){
     return flag;
 }
 
+// Runs the function pointer (a sorting algorithm), with the provided data
+// and stores the time taken.
 int executeSort(void (*f)(struct int_array), struct int_array arr, double* time){
     struct timeval start,stop;
     gettimeofday(&start, NULL);
@@ -166,6 +168,7 @@ int executeSort(void (*f)(struct int_array), struct int_array arr, double* time)
     return checkArray(arr);
 }
 
+// Stores time as a number of milliseconds
 void saveTime(struct timeval start, struct timeval stop, double* store){
     *store = (double)(stop.tv_sec - start.tv_sec) * 1000 + (double)(stop.tv_usec - start.tv_usec) / 1000;
 }
@@ -177,6 +180,8 @@ void initializeData(struct data* d){
     d->quick_sort_data.array = NULL;
 }
 
+// Linearly searches the array to determine if it is sorted
+// in nondescending order
 int checkArray(struct int_array arr){
     for(unsigned i = 0; i < arr.size-1; ++i){
         if(arr.array[i] > arr.array[i+1]){
@@ -213,8 +218,11 @@ void printTableFoot(){
     printf("//+-----------------------+-----------------+----------------+------------+\n");
 }
 
-
-// Selection Sort
+/*
+    +-----------------------+
+    |    Selection Sort     |
+    +-----------------------+
+*/
 
 // Prints out the elements of an integer array
 void printSelectionSort(struct int_array arr){
@@ -243,7 +251,11 @@ void selectionSort(struct int_array arr){
 }
 
 
-// Quick Sort
+/*
+    +-----------------------+
+    |      Quick Sort       |
+    +-----------------------+
+*/
 
 // Prints out an array with a sub array focused in square brackets
 void printQuickSort(struct int_array arr, struct slice slc){
@@ -318,7 +330,11 @@ int hoarePartition(struct int_array arr, struct slice slc){
 }
 
 
-// Insertion Sort
+/*
+    +-----------------------+
+    |    Insertion Sort     |
+    +-----------------------+
+*/
 
 // Prints out an array with a sub array focused in square brackets
 void printInsertionSort(struct int_array arr, unsigned index){
