@@ -3,12 +3,19 @@
 #include <time.h>
 #include <sys/time.h>
 
+// Error flags indicating which sorting algorithm failed
+#define FLAG_SELECTION 1
+#define FLAG_QUICK 2
+#define FLAG_INSERTION 4
 
+// Stores an array of integers and its size
 struct int_array {
     int* array;
     unsigned size;
 };
 
+// Stores information about a trial: number of elements and time taken
+// for each of its sorting algorithms
 struct trial {
     unsigned num_elements;
     double selection_sort_time;
@@ -16,26 +23,27 @@ struct trial {
     double quick_sort_time;
 };
 
+// Stores an int_array for each sorting algorithm to use with testing
 struct data {
     struct int_array selection_sort_data;
     struct int_array insertion_sort_data;
     struct int_array quick_sort_data;
 };
 
+// Used by the quick sort algorithm to subdivide the array
 struct slice {
     int l;
     int r;
 };
 
+// Runner functions
+int parseCL(int, char**, unsigned*, unsigned*);
+void initializeData(struct data*);
 int generateArrays(unsigned, struct data*);
 int runTrial(unsigned, struct trial*);
-void initializeData(struct data*);
-int parseCL(int, char**, struct int_array*);
-
-void executeSort(void (*f)(struct int_array), struct int_array arr, double* time);
-
+int executeSort(void (*f)(struct int_array), struct int_array arr, double* time);
 void saveTime(struct timeval, struct timeval, double*);
-
+int checkArray(struct int_array);
 
 // Sorting functions
 //      Selection Sort
@@ -51,7 +59,6 @@ void QuickSort(struct int_array, struct slice);
 int hoarePartition(struct int_array, struct slice);
 void swap(int*, int*);
 
-
 // Output functions
 //      Table Output
 void printTable(struct trial*,unsigned);
@@ -59,30 +66,58 @@ void printTableHead();
 void printTableRow(struct trial);
 void printTableFoot();
 
-//      Sorting Output
 
-int main() {
+int main(int argc, char* argv[]) {
 
     srand(time(NULL));
-    int* A = NULL;
-    int* B = NULL;
-    int* C = NULL;
-
+    unsigned size;
+    unsigned growth = 10;
+    if(parseCL(argc,argv,&size, &growth)){
+        printf("Usage: %s size [growth rate]\nSize and optionally growth rate must be greater than 0.\n",argv[0]);
+        exit(EXIT_FAILURE);
+    }
     unsigned num_runs = 3;
     struct trial trials[num_runs];
-    unsigned size = 100;
-    unsigned growth = 10;
+    
     for(unsigned i = 0; i < num_runs; ++i){
+        int flag;
+        if((flag = runTrial(size,&(trials[i])))){
+            printf("ERROR! ");
+            if(flag & FLAG_INSERTION){
+                printf("INSERTION. ");
+            }
+            if(flag & FLAG_SELECTION){
+                printf("SELECTION. ");
+            }
+            if(flag & FLAG_QUICK){
+                printf("QUICK. ");
+            }
+            
+        }
         size*=growth;
-        runTrial(size,&(trials[i]));
     }
     printTable(trials,num_runs);
 
-    free(A);
-    free(B);
-    free(C);
-
     return 0;
+}
+
+// Parses the command line argument to set the starting size of the array.
+int parseCL(int argc, char** argv, unsigned* size, unsigned* growth){
+    if(argc == 2){
+        *size = atoi(argv[1]);
+        if((*size) == 0){
+            return 1;
+        }
+        return 0;
+    } if(argc == 3){
+        *size = atoi(argv[1]);
+        *growth = atoi(argv[2]);
+        if(*size == 0 || *growth == 0){
+            return 1;
+        }
+        return 0;
+    }
+    return 1;
 }
 
 // Generates a random array and copies it to three arrays
@@ -90,15 +125,15 @@ int generateArrays(unsigned size, struct data* d){
 
     // Allocates memory for the three arrays
     if((d->selection_sort_data.array = reallocarray(d->selection_sort_data.array, size, sizeof(int))) == NULL){
-        perror("MALLOC A");
+        perror("malloc selection sort");
         exit(EXIT_FAILURE);
     }
     if((d->insertion_sort_data.array = reallocarray(d->insertion_sort_data.array, size, sizeof(int))) == NULL){
-        perror("MALLOC B");
+        perror("malloc insertion sort");
         exit(EXIT_FAILURE);
     }
     if((d->quick_sort_data.array = reallocarray(d->quick_sort_data.array, size, sizeof(int))) == NULL){
-        perror("MALLOC C");
+        perror("malloc quick sort");
         exit(EXIT_FAILURE);
     }
 
@@ -120,20 +155,31 @@ int runTrial(unsigned elements, struct trial* trial_data){
     initializeData(&array);
     generateArrays(elements,&array);
     trial_data->num_elements = elements;
-    executeSort(selectionSort,array.selection_sort_data,&(trial_data->selection_sort_time));
-    executeSort(InsertionSort,array.insertion_sort_data,&(trial_data->insertion_sort_time));
-    executeSort(QuickSortCaller,array.quick_sort_data,&(trial_data->quick_sort_time));
-    return 0;
+    int flag = 0;
+    if(executeSort(selectionSort,array.selection_sort_data,&(trial_data->selection_sort_time))){
+        flag = flag | FLAG_SELECTION;
+    }
+    if(executeSort(InsertionSort,array.insertion_sort_data,&(trial_data->insertion_sort_time))){
+        flag = flag | FLAG_INSERTION;
+    }
+    if(executeSort(QuickSortCaller,array.quick_sort_data,&(trial_data->quick_sort_time))){
+        flag = flag | FLAG_QUICK;
+    }
+    return flag;
 }
 
-void executeSort(void (*f)(struct int_array), struct int_array arr, double* time){
+// Runs the function pointer (a sorting algorithm), with the provided data
+// and stores the time taken.
+int executeSort(void (*f)(struct int_array), struct int_array arr, double* time){
     struct timeval start,stop;
     gettimeofday(&start, NULL);
     (*f)(arr);
     gettimeofday(&stop, NULL);
     saveTime(start,stop,time);
+    return checkArray(arr);
 }
 
+// Stores time as a number of milliseconds
 void saveTime(struct timeval start, struct timeval stop, double* store){
     *store = (double)(stop.tv_sec - start.tv_sec) * 1000 + (double)(stop.tv_usec - start.tv_usec) / 1000;
 }
@@ -143,6 +189,17 @@ void initializeData(struct data* d){
     d->selection_sort_data.array = NULL;
     d->insertion_sort_data.array = NULL;
     d->quick_sort_data.array = NULL;
+}
+
+// Linearly searches the array to determine if it is sorted
+// in nondescending order
+int checkArray(struct int_array arr){
+    for(unsigned i = 0; i < arr.size-1; ++i){
+        if(arr.array[i] > arr.array[i+1]){
+            return 1;
+        }
+    }
+    return 0;
 }
 
 // Prints out the table head, each row, and the foot
@@ -172,8 +229,11 @@ void printTableFoot(){
     printf("//+-----------------------+-----------------+----------------+------------+\n");
 }
 
-
-// Selection Sort
+/*
+    +-----------------------+
+    |    Selection Sort     |
+    +-----------------------+
+*/
 
 // Prints out the elements of an integer array
 void printSelectionSort(struct int_array arr){
@@ -202,7 +262,11 @@ void selectionSort(struct int_array arr){
 }
 
 
-// Quick Sort
+/*
+    +-----------------------+
+    |      Quick Sort       |
+    +-----------------------+
+*/
 
 // Prints out an array with a sub array focused in square brackets
 void printQuickSort(struct int_array arr, struct slice slc){
@@ -277,7 +341,11 @@ int hoarePartition(struct int_array arr, struct slice slc){
 }
 
 
-// Insertion Sort
+/*
+    +-----------------------+
+    |    Insertion Sort     |
+    +-----------------------+
+*/
 
 // Prints out an array with a sub array focused in square brackets
 void printInsertionSort(struct int_array arr, unsigned index){
@@ -306,5 +374,4 @@ void InsertionSort(struct int_array arr){
         arr.array[j+1] = v;
         // printInsertionSort(arr,i);
     }
-
 }
