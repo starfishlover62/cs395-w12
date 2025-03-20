@@ -79,7 +79,6 @@ int main(int argc, char* argv[]) {
     struct trial trials[num_runs];
     unsigned growth = rand() % 9 + 2;
     for(unsigned i = 0; i < num_runs; ++i){
-        size*=growth;
         int flag;
         if((flag = runTrial(size,&(trials[i])))){
             printf("ERROR! ");
@@ -94,6 +93,7 @@ int main(int argc, char* argv[]) {
             }
             
         }
+        size*=growth;
     }
     printTable(trials,num_runs);
 
