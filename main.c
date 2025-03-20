@@ -70,14 +70,10 @@ void printTableFoot();
 int main() {
 
     srand(time(NULL));
-    int* A = NULL;
-    int* B = NULL;
-    int* C = NULL;
-
     unsigned num_runs = 3;
     struct trial trials[num_runs];
-    unsigned size = 100;
-    unsigned growth = 10;
+    unsigned size = 10000;
+    unsigned growth = rand() % 9 + 2;
     for(unsigned i = 0; i < num_runs; ++i){
         size*=growth;
         int flag;
@@ -96,10 +92,6 @@ int main() {
         }
     }
     printTable(trials,num_runs);
-
-    free(A);
-    free(B);
-    free(C);
 
     return 0;
 }
