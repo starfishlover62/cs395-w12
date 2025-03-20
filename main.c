@@ -114,15 +114,15 @@ int generateArrays(unsigned size, struct data* d){
 
     // Allocates memory for the three arrays
     if((d->selection_sort_data.array = reallocarray(d->selection_sort_data.array, size, sizeof(int))) == NULL){
-        perror("MALLOC A");
+        perror("malloc selection sort");
         exit(EXIT_FAILURE);
     }
     if((d->insertion_sort_data.array = reallocarray(d->insertion_sort_data.array, size, sizeof(int))) == NULL){
-        perror("MALLOC B");
+        perror("malloc insertion sort");
         exit(EXIT_FAILURE);
     }
     if((d->quick_sort_data.array = reallocarray(d->quick_sort_data.array, size, sizeof(int))) == NULL){
-        perror("MALLOC C");
+        perror("malloc quick sort");
         exit(EXIT_FAILURE);
     }
 
