@@ -3,17 +3,19 @@
 #include <time.h>
 #include <sys/time.h>
 
-
+// Error flags indicating which sorting algorithm failed
 #define FLAG_SELECTION 1
 #define FLAG_QUICK 2
 #define FLAG_INSERTION 4
 
-
+// Stores an array of integers and its size
 struct int_array {
     int* array;
     unsigned size;
 };
 
+// Stores information about a trial: number of elements and time taken
+// for each of its sorting algorithms
 struct trial {
     unsigned num_elements;
     double selection_sort_time;
@@ -21,27 +23,27 @@ struct trial {
     double quick_sort_time;
 };
 
+// Stores an int_array for each sorting algorithm to use with testing
 struct data {
     struct int_array selection_sort_data;
     struct int_array insertion_sort_data;
     struct int_array quick_sort_data;
 };
 
+// Used by the quick sort algorithm to subdivide the array
 struct slice {
     int l;
     int r;
 };
 
+// Runner functions
+int parseCL(int, char**, unsigned*);
+void initializeData(struct data*);
 int generateArrays(unsigned, struct data*);
 int runTrial(unsigned, struct trial*);
-void initializeData(struct data*);
-int parseCL(int, char**, struct int_array*);
-int checkArray(struct int_array);
-
 int executeSort(void (*f)(struct int_array), struct int_array arr, double* time);
-
 void saveTime(struct timeval, struct timeval, double*);
-
+int checkArray(struct int_array);
 
 // Sorting functions
 //      Selection Sort
@@ -57,7 +59,6 @@ void QuickSort(struct int_array, struct slice);
 int hoarePartition(struct int_array, struct slice);
 void swap(int*, int*);
 
-
 // Output functions
 //      Table Output
 void printTable(struct trial*,unsigned);
@@ -65,14 +66,17 @@ void printTableHead();
 void printTableRow(struct trial);
 void printTableFoot();
 
-//      Sorting Output
 
-int main() {
+int main(int argc, char* argv[]) {
 
     srand(time(NULL));
+    unsigned size;
+    if(parseCL(argc,argv,&size)){
+        printf("Usage: %s n\nn is the size of the first array\n",argv[0]);
+        exit(EXIT_FAILURE);
+    }
     unsigned num_runs = 3;
     struct trial trials[num_runs];
-    unsigned size = 10000;
     unsigned growth = rand() % 9 + 2;
     for(unsigned i = 0; i < num_runs; ++i){
         size*=growth;
@@ -94,6 +98,15 @@ int main() {
     printTable(trials,num_runs);
 
     return 0;
+}
+
+// Parses the command line argument to set the starting size of the array.
+int parseCL(int argc, char** argv, unsigned* val){
+    if(argc == 2){
+        *val = atoi(argv[1]);
+        return 0;
+    }
+    return 1;
 }
 
 // Generates a random array and copies it to three arrays
