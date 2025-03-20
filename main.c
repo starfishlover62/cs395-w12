@@ -37,7 +37,7 @@ struct slice {
 };
 
 // Runner functions
-int parseCL(int, char**, unsigned*);
+int parseCL(int, char**, unsigned*, unsigned*);
 void initializeData(struct data*);
 int generateArrays(unsigned, struct data*);
 int runTrial(unsigned, struct trial*);
@@ -71,13 +71,14 @@ int main(int argc, char* argv[]) {
 
     srand(time(NULL));
     unsigned size;
-    if(parseCL(argc,argv,&size)){
-        printf("Usage: %s n\nn is the size of the first array\n",argv[0]);
+    unsigned growth = 10;
+    if(parseCL(argc,argv,&size, &growth)){
+        printf("Usage: %s size [growth rate]\nSize and optionally growth rate must be greater than 0.\n",argv[0]);
         exit(EXIT_FAILURE);
     }
     unsigned num_runs = 3;
     struct trial trials[num_runs];
-    unsigned growth = rand() % 9 + 2;
+    
     for(unsigned i = 0; i < num_runs; ++i){
         int flag;
         if((flag = runTrial(size,&(trials[i])))){
@@ -101,9 +102,19 @@ int main(int argc, char* argv[]) {
 }
 
 // Parses the command line argument to set the starting size of the array.
-int parseCL(int argc, char** argv, unsigned* val){
+int parseCL(int argc, char** argv, unsigned* size, unsigned* growth){
     if(argc == 2){
-        *val = atoi(argv[1]);
+        *size = atoi(argv[1]);
+        if((*size) == 0){
+            return 1;
+        }
+        return 0;
+    } if(argc == 3){
+        *size = atoi(argv[1]);
+        *growth = atoi(argv[2]);
+        if(*size == 0 || *growth == 0){
+            return 1;
+        }
         return 0;
     }
     return 1;
